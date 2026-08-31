@@ -8,14 +8,13 @@
 
 - name: Configure proxy settings
   ansible.builtin.include_tasks: proxy.yaml
-  when: gpu_validation_http_proxy or gpu_validation_https_proxy
+  when: (gpu_validation_http_proxy | length > 0) or (gpu_validation_https_proxy | length > 0)
 
-- name: Install needed driver dependency packages for RHEL
+- name: Install needed driver dependency packages
   when:
-    - ansible_distribution == "RedHat"
-    - gpu_validation_mode == "mig"
+    - gpu_validation_mode in ["mig", "vgpu"]
   block:
-    - name: Execute bootstrap command - RHEL repo setup
+    - name: Execute bootstrap command
       ansible.builtin.include_role:
         name: osp.edpm.edpm_bootstrap
         tasks_from: bootstrap_command.yml
@@ -36,7 +35,6 @@
 
     - name: Install DKMS and kernel-devel for running kernel (UNSUPPORTED)
       ansible.builtin.dnf:
-        use_backend: dnf4
         name:
           - dkms
           - "kernel-devel-{{ running_kernel.stdout }}"
@@ -45,19 +43,16 @@
 
 - name: Install pciutils package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: pciutils
     state: present
 
 - name: Install pip package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: python-pip
     state: present
 
 - name: Install podman package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: podman
     state: present
 
